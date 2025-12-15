@@ -2,8 +2,8 @@
 # Firewall management functions
 
 # Source utils for logging
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-. "$SCRIPT_DIR/utils.sh"
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$LIB_DIR/utils.sh"
 
 detect_firewall() {
     if command -v ufw >/dev/null 2>&1; then

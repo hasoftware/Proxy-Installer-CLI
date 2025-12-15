@@ -28,12 +28,14 @@ Chúng tôi luôn hoan nghênh các đề xuất cải thiện! Vui lòng:
 ### Đóng góp code (Pull Requests)
 
 1. **Fork repository**
+
    ```bash
    git clone https://github.com/your-username/Proxy-Installer-CLI.git
    cd Proxy-Installer-CLI
    ```
 
 2. **Tạo branch mới**
+
    ```bash
    git checkout -b feature/your-feature-name
    # hoặc
@@ -41,22 +43,25 @@ Chúng tôi luôn hoan nghênh các đề xuất cải thiện! Vui lòng:
    ```
 
 3. **Thực hiện thay đổi**
+
    - Tuân thủ coding style hiện tại
    - Thêm comments cho code phức tạp
    - Đảm bảo script vẫn chạy được trên các distro được hỗ trợ
 
 4. **Test thay đổi**
+
    ```bash
    # Syntax check
    bash -n auto-proxy-installer.sh
    bash -n lib/*.sh
    bash -n modules/*.sh
-   
+
    # Test trên máy thật (nếu có thể)
    sudo ./auto-proxy-installer.sh --help
    ```
 
 5. **Commit changes**
+
    ```bash
    git add .
    git commit -m "feat: Add new feature description"
@@ -103,6 +108,7 @@ Trước khi submit PR, vui lòng:
 ## Commit Message Format
 
 Sử dụng format:
+
 ```
 type: Short description
 
@@ -110,6 +116,7 @@ Longer description if needed
 ```
 
 Types:
+
 - `feat`: Tính năng mới
 - `fix`: Sửa lỗi
 - `docs`: Cập nhật documentation
@@ -121,8 +128,8 @@ Types:
 ## Questions?
 
 Nếu có câu hỏi, vui lòng:
+
 - Tạo issue với label `question`
 - Hoặc liên hệ maintainer
 
 Cảm ơn bạn đã đóng góp! 🙏
-

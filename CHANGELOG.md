@@ -8,6 +8,7 @@ và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0
 ## [Unreleased]
 
 ### Added
+
 - Initial release
 - Auto OS detection (Ubuntu/Debian, CentOS/RHEL, AlmaLinux, Rocky, Amazon Linux)
 - HTTP Proxy installation với Squid
@@ -24,6 +25,7 @@ và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0
 - Comprehensive documentation (README, INSTALL, CONTRIBUTING)
 
 ### Security
+
 - Password không được lưu trong log files
 - Password được mask khi hiển thị
 - Config files có quyền 600 (chỉ root đọc được)
@@ -32,5 +34,5 @@ và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0
 ## [1.0.0] - 2025-01-XX
 
 ### Added
-- Initial release của Auto Proxy Installer
 
+- Initial release của Auto Proxy Installer

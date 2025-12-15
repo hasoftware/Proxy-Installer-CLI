@@ -2,8 +2,8 @@
 # Package management functions
 
 # Source utils for logging
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-. "$SCRIPT_DIR/utils.sh"
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$LIB_DIR/utils.sh"
 
 install_packages() {
     local pkg_manager="$1"

@@ -32,8 +32,8 @@ Script tự động phát hiện distro Linux và cài đặt proxy theo lựa c
 1. Clone hoặc tải repository:
 
 ```bash
-git clone <repository-url>
-cd ShadowRocket-Installer
+git clone https://github.com/hasoftware/Proxy-Installer-CLI.git
+cd Proxy-Installer-CLI
 ```
 
 2. Cấp quyền thực thi:
@@ -141,7 +141,14 @@ sudo ./auto-proxy-installer.sh --uninstall http
 │   ├── socks5.sh             # SOCKS5 Proxy installation
 │   ├── shadowsocks.sh        # Shadowsocks installation
 │   └── uninstall.sh          # Uninstall functions
-└── README.md                 # Tài liệu này
+├── .github/
+│   └── workflows/
+│       └── test.yml          # GitHub Actions workflow
+├── LICENSE                   # MIT License
+├── README.md                 # Tài liệu này
+├── INSTALL.md                # Hướng dẫn cài đặt nhanh
+├── CONTRIBUTING.md           # Hướng dẫn đóng góp
+└── CHANGELOG.md              # Lịch sử thay đổi
 ```
 
 ## Chi tiết kỹ thuật
@@ -334,6 +341,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+Xem [CONTRIBUTING.md](CONTRIBUTING.md) để biết thêm chi tiết về cách đóng góp.
 
 ## Repository
 
