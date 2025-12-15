@@ -132,11 +132,29 @@ check_socks5_proxy() {
         echo "  Service: danted"
         echo "  Config: /etc/danted.conf"
         
+        # Try to get username from config or system users
+        local dante_username=""
+        if [ -f "/etc/danted.conf" ]; then
+            # Check for username in config (PAM auth)
+            dante_username=$(grep -i "username\|user" /etc/danted.conf 2>/dev/null | head -n 1 || true)
+        fi
+        
         # Get server IP
         local server_ip=$(get_server_ip 2>/dev/null | head -n 1 | tr -d '\n\r' || echo "N/A")
         if [ -n "$server_ip" ] && [ "$server_ip" != "N/A" ] && [ -n "$socks5_port" ]; then
             echo "  Server IP: $server_ip"
-            echo "  URL: socks5://***:***@${server_ip}:${socks5_port}"
+            if [ -n "$dante_username" ]; then
+                echo "  Username: (xem trong config hoặc dùng system user)"
+            fi
+            echo "  URL: socks5://USERNAME:PASSWORD@${server_ip}:${socks5_port}"
+            echo ""
+            echo "  📱 Để kết nối Shadowrocket với SOCKS5:"
+            echo "     1. Mở Shadowrocket"
+            echo "     2. Chọn 'Add Server' > 'Manual'"
+            echo "     3. Chọn Type: SOCKS5"
+            echo "     4. Nhập Server: $server_ip"
+            echo "     5. Nhập Port: $socks5_port"
+            echo "     6. Nhập Username và Password (xem trong /etc/danted.conf)"
         fi
         
         echo ""
@@ -222,9 +240,21 @@ check_shadowsocks_proxy() {
         # Get config from service or config file
         local ss_config="/etc/shadowsocks-libev/config.json"
         if [ -f "$ss_config" ]; then
-            ss_port=$(grep "server_port" "$ss_config" 2>/dev/null | grep -oP '[0-9]+' | head -n 1 || true)
-            ss_method=$(grep "method" "$ss_config" 2>/dev/null | grep -oP '"[^"]+"' | head -n 1 | tr -d '"' || true)
-            ss_password=$(grep "password" "$ss_config" 2>/dev/null | grep -oP '"[^"]+"' | head -n 1 | tr -d '"' || true)
+            # Use python or jq if available, otherwise use grep with better regex
+            if command -v python3 >/dev/null 2>&1; then
+                ss_port=$(python3 -c "import json; f=open('$ss_config'); d=json.load(f); print(d.get('server_port', ''))" 2>/dev/null || true)
+                ss_method=$(python3 -c "import json; f=open('$ss_config'); d=json.load(f); print(d.get('method', ''))" 2>/dev/null || true)
+                ss_password=$(python3 -c "import json; f=open('$ss_config'); d=json.load(f); print(d.get('password', ''))" 2>/dev/null || true)
+            elif command -v jq >/dev/null 2>&1; then
+                ss_port=$(jq -r '.server_port // empty' "$ss_config" 2>/dev/null || true)
+                ss_method=$(jq -r '.method // empty' "$ss_config" 2>/dev/null || true)
+                ss_password=$(jq -r '.password // empty' "$ss_config" 2>/dev/null || true)
+            else
+                # Fallback: use grep with better pattern matching
+                ss_port=$(grep '"server_port"' "$ss_config" 2>/dev/null | grep -oP ':\s*\K[0-9]+' | head -n 1 || true)
+                ss_method=$(grep '"method"' "$ss_config" 2>/dev/null | grep -oP ':\s*"\K[^"]+' | head -n 1 || true)
+                ss_password=$(grep '"password"' "$ss_config" 2>/dev/null | grep -oP ':\s*"\K[^"]+' | head -n 1 || true)
+            fi
         fi
         
         # Get port from listening ports (check port 7777 specifically)
@@ -285,9 +315,21 @@ check_shadowsocks_proxy() {
         # Get config from service or config file
         local ss_config="/etc/shadowsocks-rust/config.json"
         if [ -f "$ss_config" ]; then
-            ss_port=$(grep "server_port" "$ss_config" 2>/dev/null | grep -oP '[0-9]+' | head -n 1 || true)
-            ss_method=$(grep "method" "$ss_config" 2>/dev/null | grep -oP '"[^"]+"' | head -n 1 | tr -d '"' || true)
-            ss_password=$(grep "password" "$ss_config" 2>/dev/null | grep -oP '"[^"]+"' | head -n 1 | tr -d '"' || true)
+            # Use python or jq if available, otherwise use grep with better regex
+            if command -v python3 >/dev/null 2>&1; then
+                ss_port=$(python3 -c "import json; f=open('$ss_config'); d=json.load(f); print(d.get('server_port', ''))" 2>/dev/null || true)
+                ss_method=$(python3 -c "import json; f=open('$ss_config'); d=json.load(f); print(d.get('method', ''))" 2>/dev/null || true)
+                ss_password=$(python3 -c "import json; f=open('$ss_config'); d=json.load(f); print(d.get('password', ''))" 2>/dev/null || true)
+            elif command -v jq >/dev/null 2>&1; then
+                ss_port=$(jq -r '.server_port // empty' "$ss_config" 2>/dev/null || true)
+                ss_method=$(jq -r '.method // empty' "$ss_config" 2>/dev/null || true)
+                ss_password=$(jq -r '.password // empty' "$ss_config" 2>/dev/null || true)
+            else
+                # Fallback: use grep with better pattern matching
+                ss_port=$(grep '"server_port"' "$ss_config" 2>/dev/null | grep -oP ':\s*\K[0-9]+' | head -n 1 || true)
+                ss_method=$(grep '"method"' "$ss_config" 2>/dev/null | grep -oP ':\s*"\K[^"]+' | head -n 1 || true)
+                ss_password=$(grep '"password"' "$ss_config" 2>/dev/null | grep -oP ':\s*"\K[^"]+' | head -n 1 || true)
+            fi
         fi
         
         # Get port from listening ports (check port 7777 specifically)
