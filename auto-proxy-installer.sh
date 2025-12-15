@@ -86,8 +86,9 @@ show_menu() {
     echo "  2. Cài Proxy SOCKS5"
     echo "  3. Cài Shadowsocks (cho Shadowrocket)"
     echo "  4. Kiểm tra Proxy hiện có"
-    echo "  5. Gỡ cài đặt"
-    echo "  6. Thoát"
+    echo "  5. Quản lý MTProxy"
+    echo "  6. Gỡ cài đặt"
+    echo "  7. Thoát"
     echo ""
     echo "=========================================="
 }
@@ -345,6 +346,98 @@ install_shadowsocks_interactive() {
     fi
 }
 
+# Manage MTProxy (interactive)
+manage_mtproxy_interactive() {
+    info "=== Quản lý MTProxy ==="
+    echo ""
+    
+    # Find MTProxy service
+    local mtproxy_service=""
+    local service_names=("mtproto-proxy" "mtproxy" "mt-proxy" "telegram-proxy")
+    
+    for service_name in "${service_names[@]}"; do
+        if systemctl list-unit-files 2>/dev/null | grep -q "${service_name}.service" || \
+           systemctl list-units --type=service 2>/dev/null | grep -q "${service_name}" || \
+           [ -f "/etc/systemd/system/${service_name}.service" ] || \
+           [ -f "/lib/systemd/system/${service_name}.service" ]; then
+            mtproxy_service="$service_name"
+            break
+        fi
+    done
+    
+    if [ -z "$mtproxy_service" ]; then
+        warn "Không tìm thấy MTProxy service trên hệ thống."
+        return 1
+    fi
+    
+    echo "Tìm thấy MTProxy service: $mtproxy_service"
+    echo ""
+    
+    # Check current status
+    if systemctl is-active --quiet "$mtproxy_service" 2>/dev/null; then
+        echo "  Status: ✅ Đang chạy"
+    else
+        echo "  Status: ❌ Đã dừng"
+    fi
+    
+    echo ""
+    echo "Chọn hành động:"
+    echo "  1. Bật MTProxy"
+    echo "  2. Tắt MTProxy"
+    echo "  3. Khởi động lại MTProxy"
+    echo "  4. Xem trạng thái chi tiết"
+    echo "  5. Xem log"
+    echo "  6. Quay lại"
+    echo ""
+    
+    read -p "Chọn [1-6]: " action
+    case "$action" in
+        1)
+            info "Đang bật MTProxy..."
+            systemctl start "$mtproxy_service" && systemctl enable "$mtproxy_service" 2>/dev/null
+            if systemctl is-active --quiet "$mtproxy_service" 2>/dev/null; then
+                ok "MTProxy đã được bật thành công"
+            else
+                error "Không thể bật MTProxy. Kiểm tra log để biết thêm chi tiết."
+            fi
+            ;;
+        2)
+            info "Đang tắt MTProxy..."
+            systemctl stop "$mtproxy_service" 2>/dev/null
+            if ! systemctl is-active --quiet "$mtproxy_service" 2>/dev/null; then
+                ok "MTProxy đã được tắt"
+            else
+                error "Không thể tắt MTProxy"
+            fi
+            ;;
+        3)
+            info "Đang khởi động lại MTProxy..."
+            systemctl restart "$mtproxy_service" 2>/dev/null
+            sleep 2
+            if systemctl is-active --quiet "$mtproxy_service" 2>/dev/null; then
+                ok "MTProxy đã được khởi động lại thành công"
+            else
+                error "Không thể khởi động lại MTProxy. Kiểm tra log để biết thêm chi tiết."
+            fi
+            ;;
+        4)
+            echo ""
+            systemctl status "$mtproxy_service" --no-pager -l
+            ;;
+        5)
+            echo ""
+            info "Hiển thị 50 dòng log gần nhất:"
+            journalctl -u "$mtproxy_service" -n 50 --no-pager
+            ;;
+        6)
+            return 0
+            ;;
+        *)
+            warn "Lựa chọn không hợp lệ"
+            ;;
+    esac
+}
+
 # Uninstall menu (interactive)
 uninstall_interactive() {
     info "=== Gỡ cài đặt Proxy ==="
@@ -504,7 +597,7 @@ main() {
         # Interactive mode
         while true; do
             show_menu
-            read -p "Nhập số lựa chọn của bạn [1-6]: " choice
+            read -p "Nhập số lựa chọn của bạn [1-7]: " choice
             # Trim whitespace
             choice=$(echo "$choice" | tr -d '[:space:]')
             
@@ -526,15 +619,19 @@ main() {
                     read -p "Nhấn Enter để tiếp tục..."
                     ;;
                 5)
-                    uninstall_interactive
+                    manage_mtproxy_interactive
                     read -p "Nhấn Enter để tiếp tục..."
                     ;;
                 6)
+                    uninstall_interactive
+                    read -p "Nhấn Enter để tiếp tục..."
+                    ;;
+                7)
                     info "Thoát chương trình"
                     exit 0
                     ;;
                 *)
-                    warn "Lựa chọn không hợp lệ: '$choice'. Vui lòng chọn từ 1-6."
+                    warn "Lựa chọn không hợp lệ: '$choice'. Vui lòng chọn từ 1-7."
                     sleep 2
                     ;;
             esac

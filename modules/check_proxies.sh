@@ -10,6 +10,11 @@ check_proxies() {
     
     local found_any=false
     
+    # Check MTProxy first (common on VPS)
+    if check_mtproxy; then
+        found_any=true
+    fi
+    
     # Check HTTP Proxy (Squid)
     if check_http_proxy; then
         found_any=true
@@ -29,6 +34,109 @@ check_proxies() {
         info "Không tìm thấy proxy nào đã được cài đặt."
         echo ""
     fi
+}
+
+check_mtproxy() {
+    local mtproxy_running=false
+    local mtproxy_port=""
+    local mtproxy_secret=""
+    local mtproxy_service=""
+    
+    # Check for common MTProxy service names
+    local service_names=("mtproto-proxy" "mtproxy" "mt-proxy" "telegram-proxy")
+    
+    for service_name in "${service_names[@]}"; do
+        if systemctl list-unit-files 2>/dev/null | grep -q "${service_name}.service" || \
+           systemctl list-units --type=service 2>/dev/null | grep -q "${service_name}" || \
+           [ -f "/etc/systemd/system/${service_name}.service" ] || \
+           [ -f "/lib/systemd/system/${service_name}.service" ]; then
+            mtproxy_service="$service_name"
+            
+            if systemctl is-active --quiet "$service_name" 2>/dev/null; then
+                mtproxy_running=true
+            fi
+            
+            # Get port from service file or config
+            local service_file="/etc/systemd/system/${service_name}.service"
+            if [ ! -f "$service_file" ]; then
+                service_file="/lib/systemd/system/${service_name}.service"
+            fi
+            
+            if [ -f "$service_file" ]; then
+                # Try to extract port from ExecStart
+                mtproxy_port=$(grep "ExecStart" "$service_file" 2>/dev/null | grep -oP ':\K[0-9]+' | head -n 1 || true)
+                # Try to extract secret
+                mtproxy_secret=$(grep "ExecStart\|SECRET" "$service_file" 2>/dev/null | grep -oP 'SECRET[=:]\K[0-9a-fA-F]+' | head -n 1 || true)
+            fi
+            
+            # Check common config locations
+            local config_locations=(
+                "/etc/mtproto-proxy/config"
+                "/opt/mtproto-proxy/config"
+                "/root/mtproto-proxy/config"
+                "/etc/mtproxy/config"
+            )
+            
+            for config_file in "${config_locations[@]}"; do
+                if [ -f "$config_file" ]; then
+                    if [ -z "$mtproxy_port" ]; then
+                        mtproxy_port=$(grep -i "port\|PORT" "$config_file" 2>/dev/null | grep -oP '[0-9]+' | head -n 1 || true)
+                    fi
+                    if [ -z "$mtproxy_secret" ]; then
+                        mtproxy_secret=$(grep -i "secret\|SECRET" "$config_file" 2>/dev/null | grep -oP '[0-9a-fA-F]{32}' | head -n 1 || true)
+                    fi
+                fi
+            done
+            
+            # Get port from listening ports (common MTProxy ports: 443, 8443, 8888)
+            if [ -z "$mtproxy_port" ]; then
+                for common_port in 443 8443 8888 1080; do
+                    if ss -lntup 2>/dev/null | grep -q ":${common_port} "; then
+                        # Check if it's likely MTProxy (check process name)
+                        local proc_name=$(ss -lntup 2>/dev/null | grep ":${common_port} " | grep -oP 'users:\(\([^)]+\)' | head -n 1 || true)
+                        if echo "$proc_name" | grep -qi "mtproto\|mtproxy\|telegram"; then
+                            mtproxy_port="$common_port"
+                            break
+                        fi
+                    fi
+                done
+            fi
+            
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📡 MTProxy (Telegram)"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "  Status: $([ "$mtproxy_running" = true ] && echo "✅ Đang chạy" || echo "❌ Đã dừng")"
+            echo "  Service: $mtproxy_service"
+            
+            if [ -n "$mtproxy_port" ]; then
+                echo "  Port: $mtproxy_port"
+            fi
+            
+            if [ -n "$mtproxy_secret" ]; then
+                echo "  Secret: ${mtproxy_secret:0:8}...${mtproxy_secret: -4}"
+            fi
+            
+            # Get server IP
+            local server_ip=$(get_server_ip 2>/dev/null | head -n 1 | tr -d '\n\r' || echo "N/A")
+            if [ -n "$server_ip" ] && [ "$server_ip" != "N/A" ]; then
+                echo "  Server IP: $server_ip"
+            fi
+            
+            echo ""
+            echo "  💡 Để bật lại MTProxy:"
+            echo "     sudo systemctl start $mtproxy_service"
+            echo "     sudo systemctl enable $mtproxy_service"
+            echo ""
+            echo "  💡 Để kiểm tra log:"
+            echo "     sudo systemctl status $mtproxy_service"
+            echo "     sudo journalctl -u $mtproxy_service -n 50"
+            echo ""
+            
+            return 0
+        fi
+    done
+    
+    return 1
 }
 
 check_http_proxy() {
