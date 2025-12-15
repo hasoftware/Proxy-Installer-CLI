@@ -211,7 +211,10 @@ check_shadowsocks_proxy() {
     local ss_password=""
     
     # Check shadowsocks-libev
-    if systemctl list-unit-files | grep -q "shadowsocks-libev.service"; then
+    if systemctl list-unit-files 2>/dev/null | grep -q "shadowsocks-libev.service" || \
+       systemctl list-units --type=service 2>/dev/null | grep -q "shadowsocks-libev" || \
+       [ -f "/etc/shadowsocks-libev/config.json" ] || \
+       [ -f "/etc/systemd/system/shadowsocks-libev.service" ]; then
         if systemctl is-active --quiet shadowsocks-libev 2>/dev/null; then
             ss_libev_running=true
         fi
@@ -224,9 +227,15 @@ check_shadowsocks_proxy() {
             ss_password=$(grep "password" "$ss_config" 2>/dev/null | grep -oP '"[^"]+"' | head -n 1 | tr -d '"' || true)
         fi
         
-        # Get port from listening ports
+        # Get port from listening ports (check port 7777 specifically)
         if [ -z "$ss_port" ]; then
             ss_port=$(ss -lntup 2>/dev/null | grep -i shadowsocks | grep -oP ':\K[0-9]+' | head -n 1 || true)
+        fi
+        # Also check if port 7777 is listening (common Shadowsocks port)
+        if [ -z "$ss_port" ]; then
+            if ss -lntup 2>/dev/null | grep -q ":7777 "; then
+                ss_port="7777"
+            fi
         fi
         
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -281,9 +290,15 @@ check_shadowsocks_proxy() {
             ss_password=$(grep "password" "$ss_config" 2>/dev/null | grep -oP '"[^"]+"' | head -n 1 | tr -d '"' || true)
         fi
         
-        # Get port from listening ports
+        # Get port from listening ports (check port 7777 specifically)
         if [ -z "$ss_port" ]; then
             ss_port=$(ss -lntup 2>/dev/null | grep -i shadowsocks | grep -oP ':\K[0-9]+' | head -n 1 || true)
+        fi
+        # Also check if port 7777 is listening (common Shadowsocks port)
+        if [ -z "$ss_port" ]; then
+            if ss -lntup 2>/dev/null | grep -q ":7777 "; then
+                ss_port="7777"
+            fi
         fi
         
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
