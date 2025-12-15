@@ -162,14 +162,22 @@ prompt_for_ip() {
 
 # Get server IP (auto-detect or prompt)
 # Returns only the IP address, no logging
+# Redirect stderr to prevent any error messages from being captured
 get_server_ip() {
-    local ip=$(get_public_ip)
-    if [ -n "$ip" ]; then
+    local ip=""
+    ip=$(get_public_ip 2>/dev/null)
+    if [ -n "$ip" ] && [[ "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
         echo "$ip"
+        return 0
     else
-        ip=$(prompt_for_ip)
-        echo "$ip"
+        # If auto-detect fails, prompt user (but don't capture error messages)
+        ip=$(prompt_for_ip 2>/dev/null)
+        if [ -n "$ip" ] && [[ "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+            echo "$ip"
+            return 0
+        fi
     fi
+    return 1
 }
 
 # Read input with default value

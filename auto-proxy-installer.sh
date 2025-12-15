@@ -54,13 +54,18 @@ init_system() {
     info "Đã phát hiện: OS=$OS_ID, Package Manager=$PKG_MANAGER"
     
     # Get server IP
-    SERVER_IP=$(get_server_ip)
-    if [ -n "$SERVER_IP" ]; then
+    SERVER_IP=$(get_server_ip 2>/dev/null | head -n 1 | tr -d '\n\r')
+    if [ -n "$SERVER_IP" ] && [[ "$SERVER_IP" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
         info "Đã tự động phát hiện IP: $SERVER_IP"
     else
         warn "Không thể tự động phát hiện IP. Vui lòng nhập thủ công."
-        SERVER_IP=$(prompt_for_ip)
-        info "Server IP: $SERVER_IP"
+        SERVER_IP=$(prompt_for_ip 2>/dev/null | head -n 1 | tr -d '\n\r')
+        if [ -n "$SERVER_IP" ]; then
+            info "Server IP: $SERVER_IP"
+        else
+            error "Không thể lấy được IP. Vui lòng thử lại."
+            exit 1
+        fi
     fi
 }
 
