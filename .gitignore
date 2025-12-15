@@ -1,0 +1,19 @@
+# Logs
+*.log
+/var/log/auto-proxy-installer.log
+
+# State files (if testing locally)
+/etc/auto-proxy-installer/
+
+# Backup files
+*.backup.*
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
