@@ -307,6 +307,6 @@ check_shadowsocks_proxy() {
     return 1
 }
 
-# Source shadowsocks module for generate_ss_uri function
-. "$SCRIPT_DIR/modules/shadowsocks.sh" 2>/dev/null || true
+# Note: generate_ss_uri function should be available from shadowsocks.sh
+# which is already sourced in main script
 
