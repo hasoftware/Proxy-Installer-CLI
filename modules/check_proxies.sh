@@ -36,8 +36,8 @@ check_http_proxy() {
     local squid_port=""
     local squid_config="/etc/squid/squid.conf"
     
-    # Check if squid service exists
-    if systemctl list-unit-files | grep -q "squid.service"; then
+    # Check if squid service exists or config file exists
+    if systemctl list-unit-files 2>/dev/null | grep -q "squid.service" || [ -f "$squid_config" ] || systemctl list-units --type=service 2>/dev/null | grep -q "squid"; then
         if systemctl is-active --quiet squid 2>/dev/null; then
             squid_running=true
         fi
@@ -93,9 +93,12 @@ check_socks5_proxy() {
     local microsocks_running=false
     local socks5_port=""
     local socks5_username=""
+    local found_socks5=false
     
     # Check Dante
-    if systemctl list-unit-files | grep -q "danted.service"; then
+    if systemctl list-unit-files 2>/dev/null | grep -q "danted.service" || \
+       systemctl list-units --type=service 2>/dev/null | grep -q "danted" || \
+       [ -f "/etc/danted.conf" ]; then
         if systemctl is-active --quiet danted 2>/dev/null; then
             dante_running=true
         fi
@@ -106,9 +109,15 @@ check_socks5_proxy() {
             socks5_port=$(grep "^internal:" "$dante_config" 2>/dev/null | grep -oP 'port = \K[0-9]+' | head -n 1 || true)
         fi
         
-        # Get port from listening ports
+        # Get port from listening ports (check port 6666 specifically)
         if [ -z "$socks5_port" ]; then
             socks5_port=$(ss -lntup 2>/dev/null | grep -i danted | grep -oP ':\K[0-9]+' | head -n 1 || true)
+        fi
+        # Also check if port 6666 is listening (common SOCKS5 port)
+        if [ -z "$socks5_port" ]; then
+            if ss -lntup 2>/dev/null | grep -q ":6666 "; then
+                socks5_port="6666"
+            fi
         fi
         
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -131,11 +140,14 @@ check_socks5_proxy() {
         fi
         
         echo ""
-        return 0
+        found_socks5=true
     fi
     
     # Check microsocks
-    if systemctl list-unit-files | grep -q "microsocks.service"; then
+    if systemctl list-unit-files 2>/dev/null | grep -q "microsocks.service" || \
+       systemctl list-units --type=service 2>/dev/null | grep -q "microsocks" || \
+       [ -f "/etc/systemd/system/microsocks.service" ] || \
+       [ -f "/usr/local/bin/microsocks" ]; then
         if systemctl is-active --quiet microsocks 2>/dev/null; then
             microsocks_running=true
         fi
@@ -181,9 +193,12 @@ check_socks5_proxy() {
         fi
         
         echo ""
-        return 0
+        found_socks5=true
     fi
     
+    if [ "$found_socks5" = true ]; then
+        return 0
+    fi
     return 1
 }
 
@@ -249,7 +264,11 @@ check_shadowsocks_proxy() {
     fi
     
     # Check shadowsocks-rust
-    if systemctl list-unit-files | grep -q "shadowsocks-rust.service"; then
+    if systemctl list-unit-files 2>/dev/null | grep -q "shadowsocks-rust.service" || \
+       systemctl list-units --type=service 2>/dev/null | grep -q "shadowsocks-rust" || \
+       [ -f "/etc/shadowsocks-rust/config.json" ] || \
+       [ -f "/etc/systemd/system/shadowsocks-rust.service" ] || \
+       [ -f "/usr/local/bin/ss-server" ]; then
         if systemctl is-active --quiet shadowsocks-rust 2>/dev/null; then
             ss_rust_running=true
         fi
