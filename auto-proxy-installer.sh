@@ -77,8 +77,6 @@ show_menu() {
     echo "  5. Thoát"
     echo ""
     echo "=========================================="
-    read -p "Nhập số lựa chọn của bạn [1-5]: " choice
-    echo "$choice"
 }
 
 # Install HTTP Proxy (interactive)
@@ -492,7 +490,11 @@ main() {
     if [ $# -eq 0 ]; then
         # Interactive mode
         while true; do
-            choice=$(show_menu)
+            show_menu
+            read -p "Nhập số lựa chọn của bạn [1-5]: " choice
+            # Trim whitespace
+            choice=$(echo "$choice" | tr -d '[:space:]')
+            
             case "$choice" in
                 1)
                     install_http_interactive
@@ -515,8 +517,8 @@ main() {
                     exit 0
                     ;;
                 *)
-                    warn "Lựa chọn không hợp lệ"
-                    sleep 1
+                    warn "Lựa chọn không hợp lệ: '$choice'. Vui lòng chọn từ 1-5."
+                    sleep 2
                     ;;
             esac
         done
