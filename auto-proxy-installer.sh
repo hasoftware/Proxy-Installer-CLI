@@ -60,18 +60,24 @@ init_system() {
 
 # Interactive menu
 show_menu() {
-    clear
+    # Clear screen if possible
+    clear 2>/dev/null || true
+    
+    echo ""
     echo "=========================================="
     echo "  Auto Proxy Installer"
     echo "=========================================="
     echo ""
-    echo "1. Cài Proxy HTTP"
-    echo "2. Cài Proxy SOCKS5"
-    echo "3. Cài Shadowsocks (cho Shadowrocket)"
-    echo "4. Gỡ cài đặt"
-    echo "5. Thoát"
+    echo "Vui lòng chọn một trong các tùy chọn sau:"
     echo ""
-    read -p "Chọn một tùy chọn [1-5]: " choice
+    echo "  1. Cài Proxy HTTP"
+    echo "  2. Cài Proxy SOCKS5"
+    echo "  3. Cài Shadowsocks (cho Shadowrocket)"
+    echo "  4. Gỡ cài đặt"
+    echo "  5. Thoát"
+    echo ""
+    echo "=========================================="
+    read -p "Nhập số lựa chọn của bạn [1-5]: " choice
     echo "$choice"
 }
 
