@@ -380,62 +380,225 @@ manage_mtproxy_interactive() {
         echo "  Status: ❌ Đã dừng"
     fi
     
-    echo ""
-    echo "Chọn hành động:"
-    echo "  1. Bật MTProxy"
-    echo "  2. Tắt MTProxy"
-    echo "  3. Khởi động lại MTProxy"
-    echo "  4. Xem trạng thái chi tiết"
-    echo "  5. Xem log"
-    echo "  6. Quay lại"
+            echo ""
+            echo "Chọn hành động:"
+            echo "  1. Bật MTProxy"
+            echo "  2. Tắt MTProxy"
+            echo "  3. Khởi động lại MTProxy"
+            echo "  4. Xem trạng thái chi tiết"
+            echo "  5. Xem log"
+            echo "  6. Kiểm tra và sửa lỗi config"
+            echo "  7. Quay lại"
+            echo ""
+            
+            read -p "Chọn [1-7]: " action
+            case "$action" in
+                1)
+                    info "Đang bật MTProxy..."
+                    systemctl start "$mtproxy_service" && systemctl enable "$mtproxy_service" 2>/dev/null
+                    sleep 2
+                    if systemctl is-active --quiet "$mtproxy_service" 2>/dev/null; then
+                        ok "MTProxy đã được bật thành công"
+                    else
+                        error "Không thể bật MTProxy. Kiểm tra log để biết thêm chi tiết."
+                        warn "Có thể config file bị lỗi. Chọn option 6 để kiểm tra và sửa."
+                    fi
+                    ;;
+                2)
+                    info "Đang tắt MTProxy..."
+                    systemctl stop "$mtproxy_service" 2>/dev/null
+                    if ! systemctl is-active --quiet "$mtproxy_service" 2>/dev/null; then
+                        ok "MTProxy đã được tắt"
+                    else
+                        error "Không thể tắt MTProxy"
+                    fi
+                    ;;
+                3)
+                    info "Đang khởi động lại MTProxy..."
+                    systemctl restart "$mtproxy_service" 2>/dev/null
+                    sleep 2
+                    if systemctl is-active --quiet "$mtproxy_service" 2>/dev/null; then
+                        ok "MTProxy đã được khởi động lại thành công"
+                    else
+                        error "Không thể khởi động lại MTProxy. Kiểm tra log để biết thêm chi tiết."
+                        warn "Có thể config file bị lỗi. Chọn option 6 để kiểm tra và sửa."
+                    fi
+                    ;;
+                4)
+                    echo ""
+                    systemctl status "$mtproxy_service" --no-pager -l
+                    ;;
+                5)
+                    echo ""
+                    info "Hiển thị 50 dòng log gần nhất:"
+                    journalctl -u "$mtproxy_service" -n 50 --no-pager
+                    ;;
+                6)
+                    check_mtproxy_config "$mtproxy_service"
+                    ;;
+                7)
+                    return 0
+                    ;;
+                *)
+                    warn "Lựa chọn không hợp lệ"
+                    ;;
+            esac
+}
+
+# Check and fix MTProxy config
+check_mtproxy_config() {
+    local mtproxy_service="$1"
+    
+    info "=== Kiểm tra Config MTProxy ==="
     echo ""
     
-    read -p "Chọn [1-6]: " action
-    case "$action" in
-        1)
-            info "Đang bật MTProxy..."
-            systemctl start "$mtproxy_service" && systemctl enable "$mtproxy_service" 2>/dev/null
-            if systemctl is-active --quiet "$mtproxy_service" 2>/dev/null; then
-                ok "MTProxy đã được bật thành công"
-            else
-                error "Không thể bật MTProxy. Kiểm tra log để biết thêm chi tiết."
+    # Get service file
+    local service_file="/etc/systemd/system/${mtproxy_service}.service"
+    if [ ! -f "$service_file" ]; then
+        service_file="/lib/systemd/system/${mtproxy_service}.service"
+    fi
+    
+    if [ ! -f "$service_file" ]; then
+        error "Không tìm thấy service file: $service_file"
+        return 1
+    fi
+    
+    # Extract config file path from ExecStart
+    local exec_start=$(grep "ExecStart" "$service_file" 2>/dev/null || true)
+    local config_file=""
+    
+    # Try to find config file from ExecStart
+    if echo "$exec_start" | grep -q "proxy-multi.conf"; then
+        config_file=$(echo "$exec_start" | grep -oP 'proxy-multi\.conf' | head -n 1 || true)
+        # Try common locations
+        for dir in "/opt/mtproxy" "/root/mtproxy" "/etc/mtproxy" "/opt/mtproto-proxy"; do
+            if [ -f "${dir}/${config_file}" ]; then
+                config_file="${dir}/${config_file}"
+                break
             fi
-            ;;
-        2)
-            info "Đang tắt MTProxy..."
-            systemctl stop "$mtproxy_service" 2>/dev/null
-            if ! systemctl is-active --quiet "$mtproxy_service" 2>/dev/null; then
-                ok "MTProxy đã được tắt"
-            else
-                error "Không thể tắt MTProxy"
+        done
+    fi
+    
+    # If not found, try common config locations
+    if [ -z "$config_file" ] || [ ! -f "$config_file" ]; then
+        local common_configs=(
+            "/opt/mtproxy/proxy-multi.conf"
+            "/opt/mtproto-proxy/proxy-multi.conf"
+            "/root/mtproxy/proxy-multi.conf"
+            "/etc/mtproxy/proxy-multi.conf"
+        )
+        for cfg in "${common_configs[@]}"; do
+            if [ -f "$cfg" ]; then
+                config_file="$cfg"
+                break
             fi
-            ;;
-        3)
-            info "Đang khởi động lại MTProxy..."
-            systemctl restart "$mtproxy_service" 2>/dev/null
-            sleep 2
-            if systemctl is-active --quiet "$mtproxy_service" 2>/dev/null; then
-                ok "MTProxy đã được khởi động lại thành công"
-            else
-                error "Không thể khởi động lại MTProxy. Kiểm tra log để biết thêm chi tiết."
-            fi
-            ;;
-        4)
+        done
+    fi
+    
+    if [ -z "$config_file" ] || [ ! -f "$config_file" ]; then
+        warn "Không tìm thấy config file."
+        echo ""
+        echo "ExecStart từ service file:"
+        echo "$exec_start"
+        echo ""
+        echo "Vui lòng kiểm tra thủ công config file của MTProxy."
+        return 1
+    fi
+    
+    echo "Tìm thấy config file: $config_file"
+    echo ""
+    
+    # Check config syntax
+    info "Đang kiểm tra syntax của config file..."
+    echo ""
+    echo "Nội dung config file:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    cat "$config_file"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    
+    # Check for common errors
+    local errors_found=false
+    
+    # Check for missing proxy lines
+    if ! grep -q "^proxy " "$config_file"; then
+        warn "⚠️  Không tìm thấy dòng 'proxy <ip>:<port>;' trong config"
+        errors_found=true
+    fi
+    
+    # Check for syntax errors (missing semicolons)
+    if grep -q "^proxy.*[^;]$" "$config_file"; then
+        warn "⚠️  Có thể thiếu dấu ';' ở cuối dòng proxy"
+        errors_found=true
+    fi
+    
+    # Check for empty lines or comments that might cause issues
+    if grep -q "^proxy[[:space:]]*$" "$config_file"; then
+        warn "⚠️  Có dòng proxy trống"
+        errors_found=true
+    fi
+    
+    if [ "$errors_found" = true ]; then
+        echo ""
+        warn "Phát hiện lỗi trong config file!"
+        echo ""
+        echo "Cấu trúc config file MTProxy đúng định dạng:"
+        echo "  proxy <IP>:<PORT>;"
+        echo ""
+        echo "Ví dụ:"
+        echo "  proxy 0.0.0.0:443;"
+        echo "  proxy 0.0.0.0:8443;"
+        echo ""
+        
+        if confirm "Bạn có muốn tôi tạo backup và sửa config file không?"; then
+            # Backup config
+            local backup_file="${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
+            cp "$config_file" "$backup_file"
+            ok "Đã backup config file: $backup_file"
+            
+            # Try to fix common issues
+            info "Đang cố gắng sửa lỗi..."
+            
+            # Remove empty proxy lines
+            sed -i '/^proxy[[:space:]]*$/d' "$config_file" 2>/dev/null || true
+            
+            # Add semicolon to proxy lines that don't have it
+            sed -i 's/^proxy \(.*\)[^;]$/proxy \1;/' "$config_file" 2>/dev/null || true
+            
+            ok "Đã cố gắng sửa lỗi. Vui lòng kiểm tra lại config file."
             echo ""
-            systemctl status "$mtproxy_service" --no-pager -l
-            ;;
-        5)
+            echo "Nội dung config sau khi sửa:"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            cat "$config_file"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
-            info "Hiển thị 50 dòng log gần nhất:"
-            journalctl -u "$mtproxy_service" -n 50 --no-pager
-            ;;
-        6)
-            return 0
-            ;;
-        *)
-            warn "Lựa chọn không hợp lệ"
-            ;;
-    esac
+            
+            if confirm "Bạn có muốn khởi động lại MTProxy để test không?"; then
+                systemctl restart "$mtproxy_service" 2>/dev/null
+                sleep 2
+                if systemctl is-active --quiet "$mtproxy_service" 2>/dev/null; then
+                    ok "MTProxy đã khởi động lại thành công!"
+                else
+                    error "MTProxy vẫn không khởi động được. Vui lòng kiểm tra log."
+                    echo ""
+                    echo "Xem log:"
+                    journalctl -u "$mtproxy_service" -n 20 --no-pager
+                fi
+            fi
+        else
+            info "Bạn có thể sửa config file thủ công tại: $config_file"
+        fi
+    else
+        ok "Không phát hiện lỗi syntax rõ ràng trong config file."
+        echo ""
+        warn "Nếu MTProxy vẫn không chạy được, có thể do:"
+        echo "  - Port đã được sử dụng"
+        echo "  - Secret không đúng"
+        echo "  - Quyền truy cập file"
+        echo "  - Lỗi khác trong config"
+        echo ""
+        echo "Xem log chi tiết: journalctl -u $mtproxy_service -n 50"
+    fi
 }
 
 # Uninstall menu (interactive)
