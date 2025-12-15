@@ -1,5 +1,10 @@
 # Auto Proxy Installer
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Actions](https://github.com/hasoftware/Proxy-Installer-CLI/workflows/Test%20Auto%20Proxy%20Installer/badge.svg)](https://github.com/hasoftware/Proxy-Installer-CLI/actions)
+[![Platform: Linux](https://img.shields.io/badge/Platform-Linux-blue.svg)](https://www.linux.org/)
+[![Shell: Bash](https://img.shields.io/badge/Shell-Bash-green.svg)](https://www.gnu.org/software/bash/)
+
 Script tự động phát hiện distro Linux và cài đặt proxy theo lựa chọn của người dùng.
 
 ## Tính năng
@@ -324,8 +329,19 @@ Nếu gặp vấn đề, vui lòng:
 
 ## License
 
-MIT License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Repository
+
+- **GitHub**: [https://github.com/hasoftware/Proxy-Installer-CLI](https://github.com/hasoftware/Proxy-Installer-CLI)
+- **Issues**: [https://github.com/hasoftware/Proxy-Installer-CLI/issues](https://github.com/hasoftware/Proxy-Installer-CLI/issues)
 
 ## Tác giả
 
 Auto Proxy Installer - Script tự động cài đặt proxy cho Linux
+
+Made with ❤️ by [hasoftware](https://github.com/hasoftware)

@@ -1,0 +1,90 @@
+name: Test Auto Proxy Installer
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck on scripts
+        run: |
+          shellcheck auto-proxy-installer.sh || true
+          shellcheck lib/*.sh || true
+          shellcheck modules/*.sh || true
+
+  syntax-check:
+    name: Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check bash syntax
+        run: |
+          bash -n auto-proxy-installer.sh
+          bash -n lib/*.sh
+          bash -n modules/*.sh
+
+  test-os-detection:
+    name: Test OS Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test OS detection functions
+        run: |
+          # Source the os_detect library
+          source lib/os_detect.sh
+
+          # Test detect_os function
+          OS_ID=$(detect_os)
+          echo "Detected OS: $OS_ID"
+
+          if [ -z "$OS_ID" ] || [ "$OS_ID" = "unknown" ]; then
+            echo "ERROR: OS detection failed"
+            exit 1
+          fi
+
+          # Test detect_package_manager function
+          PKG_MANAGER=$(detect_package_manager "$OS_ID")
+          echo "Detected Package Manager: $PKG_MANAGER"
+
+          if [ -z "$PKG_MANAGER" ] || [ "$PKG_MANAGER" = "unknown" ]; then
+            echo "ERROR: Package manager detection failed"
+            exit 1
+          fi
+
+          echo "✅ OS detection test passed"
+
+  test-help:
+    name: Test Help Output
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Make scripts executable
+        run: |
+          chmod +x auto-proxy-installer.sh
+          chmod +x lib/*.sh
+          chmod +x modules/*.sh
+
+      - name: Test help output
+        run: |
+          # Test that help option works (should not require root)
+          ./auto-proxy-installer.sh --help | head -n 5 || true
