@@ -55,7 +55,13 @@ init_system() {
     
     # Get server IP
     SERVER_IP=$(get_server_ip)
-    info "Server IP: $SERVER_IP"
+    if [ -n "$SERVER_IP" ]; then
+        info "Đã tự động phát hiện IP: $SERVER_IP"
+    else
+        warn "Không thể tự động phát hiện IP. Vui lòng nhập thủ công."
+        SERVER_IP=$(prompt_for_ip)
+        info "Server IP: $SERVER_IP"
+    fi
 }
 
 # Interactive menu

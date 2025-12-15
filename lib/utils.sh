@@ -161,13 +161,12 @@ prompt_for_ip() {
 }
 
 # Get server IP (auto-detect or prompt)
+# Returns only the IP address, no logging
 get_server_ip() {
     local ip=$(get_public_ip)
     if [ -n "$ip" ]; then
-        info "Đã tự động phát hiện IP: $ip"
         echo "$ip"
     else
-        warn "Không thể tự động phát hiện IP. Vui lòng nhập thủ công."
         ip=$(prompt_for_ip)
         echo "$ip"
     fi
