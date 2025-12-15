@@ -365,11 +365,48 @@ check_shadowsocks_proxy() {
         
         # Get server IP
         local server_ip=$(get_server_ip 2>/dev/null | head -n 1 | tr -d '\n\r' || echo "N/A")
-        if [ -n "$server_ip" ] && [ "$server_ip" != "N/A" ] && [ -n "$ss_port" ] && [ -n "$ss_method" ] && [ -n "$ss_password" ]; then
+        if [ -n "$server_ip" ] && [ "$server_ip" != "N/A" ] && [ -n "$ss_port" ]; then
             echo "  Server IP: $server_ip"
-            local ss_uri=$(generate_ss_uri "$server_ip" "$ss_port" "$ss_password" "$ss_method" 2>/dev/null || echo "")
-            if [ -n "$ss_uri" ]; then
-                echo "  SS URI: $ss_uri"
+            
+            if [ -n "$ss_method" ] && [ -n "$ss_password" ]; then
+                local ss_uri=$(generate_ss_uri "$server_ip" "$ss_port" "$ss_password" "$ss_method" 2>/dev/null || echo "")
+                if [ -n "$ss_uri" ]; then
+                    echo "  SS URI: $ss_uri"
+                    echo ""
+                    echo "  📱 Để kết nối Shadowrocket:"
+                    echo "     Cách 1: Quét QR Code"
+                    echo "     1. Mở Shadowrocket"
+                    echo "     2. Chọn 'Scan QR Code'"
+                    echo "     3. Quét QR code từ SS URI bên dưới"
+                    echo ""
+                    echo "     Cách 2: Nhập thủ công"
+                    echo "     1. Mở Shadowrocket"
+                    echo "     2. Chọn 'Add Server' > 'Manual'"
+                    echo "     3. Nhập Server: $server_ip"
+                    echo "     4. Nhập Port: $ss_port"
+                    echo "     5. Nhập Password: $ss_password"
+                    echo "     6. Chọn Method: $ss_method"
+                    echo ""
+                    echo "     SS URI để copy:"
+                    echo "     $ss_uri"
+                else
+                    echo ""
+                    echo "  📱 Để kết nối Shadowrocket (nhập thủ công):"
+                    echo "     1. Mở Shadowrocket"
+                    echo "     2. Chọn 'Add Server' > 'Manual'"
+                    echo "     3. Nhập Server: $server_ip"
+                    echo "     4. Nhập Port: $ss_port"
+                    if [ -n "$ss_password" ]; then
+                        echo "     5. Nhập Password: $ss_password"
+                    fi
+                    if [ -n "$ss_method" ]; then
+                        echo "     6. Chọn Method: $ss_method"
+                    fi
+                fi
+            else
+                echo ""
+                echo "  ⚠️  Không thể đọc đầy đủ thông tin từ config."
+                echo "     Vui lòng kiểm tra file: $ss_config"
             fi
         fi
         
